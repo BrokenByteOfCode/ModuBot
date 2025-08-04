@@ -1,16 +1,12 @@
 {
-  "build": {
-    "builder": "python",
-    "buildCommand": "pip install -r requirements.txt"
-  },
-  "deploy": {
-    "startCommand": "python app.py"
-  },
-  "services": [
-    {
-      "name": "modubot",
-      "startCommand": "python app.py",
-      "env": "production"
+  "phases": {
+    "install": {
+      "cmds": [
+        "pip install -r requirements.txt"
+      ]
     }
-  ]
+  },
+  "start": {
+    "cmd": "python app.py"
+  }
 }
