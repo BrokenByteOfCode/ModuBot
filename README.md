@@ -1,41 +1,35 @@
 **Welcome to ModuBot, your friendly Telegram UserBot powered by PyroGram!**
 
-**Preparation**
+**Setup & Running**
 
-Before you get started, follow these steps to set up your environment:
+The setup process is now fully automated. All you need is Python 3.8+ installed on your system.
 
-**Creating a Virtual Environment**
+The start script will automatically:
+1.  Check for a virtual environment.
+2.  Create one if it doesn't exist.
+3.  Install all the necessary libraries from `requirements.txt`.
+4.  Run the bot.
 
-For Windows:
-```bash
-python -m venv Windows
-Windows\Scripts\activate
-```
+**On Windows:**
+Simply double-click `StartBotOnWindows.bat`.
+The first time you run it, a command prompt window will appear, create the environment, install packages, and then launch the bot. Subsequent launches will be much faster.
 
-For Linux:
-```bash
-python3 -m venv Linux
-source Linux/bin/activate
-```
+**On Linux:**
+1.  First, make the script executable (you only need to do this once):
+    ```bash
+    chmod +x StartBotOnLinux.sh
+    ```
+2.  Then, run the script:
+    ```bash
+    ./StartBotOnLinux.sh
+    ```
+The script will handle the rest.
 
-After activating your virtual environment, make sure to install the necessary libraries by running:
-```bash
-pip install -r NeededLibs.txt
-```
-
-**Running ModuBot**
-
-On Linux:
-To start ModuBot, execute the following command:
-```bash
-./StartBotOnLinux.sh
-```
-
-On Windows:
-Simply double-click `StartBotOnWindows.bat` to launch ModuBot.
+**First-Time Configuration**
+When you run the bot for the first time, it will ask for your `API_ID`, `API_HASH`, and `OWNER_NICKNAME` in the console. It will also ask for your phone number, password (if you have one), and a 2FA code to log into your Telegram account.
 
 **Conclusion and Recommendations**
 
-You're all set! ModuBot is up and running, ready to assist you on Telegram. Enjoy exploring its features and customizations.
+You're all set! ModuBot is up and running. Enjoy exploring its features and customizations.
 
-Don't forget, you can create your own modules too! Watch "TemplateOfModule" to get started with creating modules for ModuBot!
+Don't forget, you can create your own modules too! Check out the `TemplateOfModule` directory to get started with creating modules for ModuBot!

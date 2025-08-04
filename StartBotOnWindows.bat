@@ -1,16 +1,31 @@
 @echo off
+setlocal
 
-:: Directory of the script
-set script_dir=%~dp0
+echo --- ModuBot Windows Starter ---
 
-:: Activate the virtual environment
-call %script_dir%Windows\Scripts\activate
+set "script_dir=%~dp0"
+set "VENV_DIR=%script_dir%Windows"
 
-:: Change directory to where your app.py is located
-cd /d %script_dir%
+if not exist "%VENV_DIR%\Scripts\activate.bat" (
+    echo Virtual environment not found. Creating one...
+    python -m venv "%VENV_DIR%"
+    echo Virtual environment created at %VENV_DIR%
+)
 
-:: Start your app.py script
+echo Activating virtual environment...
+call "%VENV_DIR%\Scripts\activate.bat"
+
+echo Installing/updating required packages from requirements.txt...
+pip install -r "%script_dir%requirements.txt"
+echo Packages are up to date.
+
+cd /d "%script_dir%"
+
+echo Starting ModuBot...
 python app.py
 
-:: Deactivate the virtual environment
-deactivate
+echo ModuBot stopped. Deactivating...
+call deactivate
+
+endlocal
+pause

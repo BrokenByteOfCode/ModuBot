@@ -1,19 +1,27 @@
 #!/bin/bash
 
-# Directory of the script
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+VENV_DIR="$script_dir/Linux"
 
-# Activate the virtual environment
-source "$script_dir/Linux/bin/activate"
+echo "--- ModuBot Linux Starter ---"
 
-pip install -r https://raw.githubusercontent.com/andriy8800555355/ModuBot/main/NeededLibs.txt
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Virtual environment not found. Creating one..."
+    python3 -m venv "$VENV_DIR"
+    echo "Virtual environment created at $VENV_DIR"
+fi
 
-# Change directory to where your app.py is located
+source "$VENV_DIR/bin/activate"
+echo "Virtual environment activated."
+
+echo "Installing/updating required packages from requirements.txt..."
+pip install -r "$script_dir/requirements.txt"
+echo "Packages are up to date."
+
 cd "$script_dir"
 
-# Start your app.py script
-python app.py
+echo "Starting ModuBot..."
+python3 app.py
 
-# Deactivate the virtual environment
 deactivate
-
+echo "ModuBot stopped. Virtual environment deactivated."
