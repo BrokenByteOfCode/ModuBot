@@ -122,9 +122,9 @@ class ModuBot:
                     requirements = [line.strip() for line in f if line.strip() and not line.startswith('#')]
                 
                 if requirements:
-                    logger.info(f"Installing requirements for {module_path.name}")
-                    subprocess.check_call([sys.executable, "-m", "pip", "install"] + requirements)
-                    logger.info(f"Requirements installed for {module_path.name}")
+                    logger.info(f"Installing/updating requirements for {module_path.name}")
+                    subprocess.check_call([sys.executable, "-m", "pip", "install", "-U"] + requirements)
+                    logger.info(f"Requirements installed/updated for {module_path.name}")
             except Exception as e:
                 logger.error(f"Error installing requirements for {module_path.name}: {e}")
 
