@@ -223,13 +223,30 @@ class ModuBot:
             shutil.rmtree(temp_dir)
         return False
 
+    def apply_main_update(self):
+        temp_dir = tempfile.mkdtemp()
+        temp_file_path = os.path.join(temp_dir, 'app.py')
+        try:
+            response = requests.get(self.GITHUB_RAW_URL, timeout=10)
+            if response.status_code == 200:
+                with open(temp_file_path, 'w', encoding='utf-8') as temp_file:
+                    temp_file.write(response.text)
+                try:
+                    self.app.send_message("me", "🆕 Updating main script and restarting...")
+                except Exception:
+                    pass
+                shutil.copy2(temp_file_path, __file__)
+                logger.info("Main script updated. Restarting...")
+                os.execl(sys.executable, sys.executable, *sys.argv)
+        except Exception as e:
+            logger.error(f"Error applying main update: {e}")
+        finally:
+            shutil.rmtree(temp_dir)
+
     def auto_check_updates(self):
         while True:
             if self.check_for_updates():
-                try:
-                    self.app.send_message("me", "🔄 An update is available for the main script. Use `.restart` to apply updates.")
-                except Exception:
-                    pass
+                self.apply_main_update()
             time.sleep(self.CHECK_INTERVAL)
 
     def download_module(self, module_name):
