@@ -156,9 +156,15 @@ class ModuBot:
                 elif hasattr(module, 'add_on'):
                     module_handlers = module.add_on(self.app)
 
+                # Store handlers as (handler, group) tuples
                 if module_handlers and isinstance(module_handlers, list):
+                    handler_tuples = []
+                    for handler in module_handlers:
+                        # Try to get group from handler, fallback to 0
+                        group = getattr(handler, "group", 0)
+                        handler_tuples.append((handler, group))
                     self.loaded_modules[module_name] = module
-                    self.module_handlers[module_name] = module_handlers
+                    self.module_handlers[module_name] = handler_tuples
                     logger.info(f"Loaded module: {full_module_name}")
                     return True, f"Модуль `{module_name}` успішно завантажено."
                 
@@ -176,8 +182,7 @@ class ModuBot:
 
         if module_name in self.module_handlers:
             handlers_to_remove = self.module_handlers[module_name]
-            for handler in handlers_to_remove:
-                group = handler.group
+            for handler, group in handlers_to_remove:
                 self.app.remove_handler(handler, group)
             del self.module_handlers[module_name]
         
