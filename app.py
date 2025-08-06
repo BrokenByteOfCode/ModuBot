@@ -28,7 +28,6 @@ class ModuBot:
         self.MODULES_FOLDER = Path("ModuBotModules")
         self.GITHUB_RAW_URL = "https://raw.githubusercontent.com/BrokenByteOfCode/ModuBot/main/app.py"
         self.MODULES_REPO_URL = "https://api.github.com/repos/BrokenByteOfCode/ModuBotModules/contents"
-        self.CHECK_INTERVAL = 300
         
         self.app = None
         self.owner_nickname = None
@@ -156,11 +155,9 @@ class ModuBot:
                 elif hasattr(module, 'add_on'):
                     module_handlers = module.add_on(self.app)
 
-                # Store handlers as (handler, group) tuples
                 if module_handlers and isinstance(module_handlers, list):
                     handler_tuples = []
                     for handler in module_handlers:
-                        # Try to get group from handler, fallback to 0
                         group = getattr(handler, "group", 0)
                         handler_tuples.append((handler, group))
                     self.loaded_modules[module_name] = module
@@ -200,28 +197,32 @@ class ModuBot:
             if module_path.is_dir():
                 self.load_module(module_path.name)
 
-    def check_for_updates(self):
-        temp_dir = tempfile.mkdtemp()
-        temp_file_path = os.path.join(temp_dir, 'app.py')
+    def get_remote_last_modified(self):
         try:
-            response = requests.get(self.GITHUB_RAW_URL, timeout=10)
-            if response.status_code == 200:
-                with open(temp_file_path, 'w', encoding='utf-8') as temp_file:
-                    temp_file.write(response.text)
-                
-                with open(__file__, 'r', encoding='utf-8') as local_file:
-                    local_content = local_file.read()
-                with open(temp_file_path, 'r', encoding='utf-8') as github_file:
-                    github_content = github_file.read()
-                
-                if local_content != github_content:
-                    logger.info("Update available for the main script.")
-                    return True
+            response = requests.head(self.GITHUB_RAW_URL, timeout=10)
+            if response.status_code == 200 and 'last-modified' in response.headers:
+                last_modified = response.headers['last-modified']
+                return datetime.strptime(last_modified, '%a, %d %b %Y %H:%M:%S %Z')
         except Exception as e:
-            logger.error(f"Error checking for updates: {e}")
-        finally:
-            shutil.rmtree(temp_dir)
-        return False
+            logger.error(f"Error getting remote last modified: {e}")
+        return None
+
+    def get_local_last_modified(self):
+        try:
+            stat = os.stat(__file__)
+            return datetime.fromtimestamp(stat.st_mtime)
+        except Exception as e:
+            logger.error(f"Error getting local last modified: {e}")
+        return None
+
+    def check_for_updates(self):
+        remote_time = self.get_remote_last_modified()
+        local_time = self.get_local_last_modified()
+        
+        if not remote_time or not local_time:
+            return False
+            
+        return remote_time > local_time
 
     def apply_main_update(self):
         temp_dir = tempfile.mkdtemp()
@@ -242,12 +243,6 @@ class ModuBot:
             logger.error(f"Error applying main update: {e}")
         finally:
             shutil.rmtree(temp_dir)
-
-    def auto_check_updates(self):
-        while True:
-            if self.check_for_updates():
-                self.apply_main_update()
-            time.sleep(self.CHECK_INTERVAL)
 
     def download_module(self, module_name):
         try:
@@ -321,34 +316,70 @@ def register_handlers(app: Client):
             logger.error(f"Error deleting local module {module_name}: {e}")
             return False, f"❌ Помилка видалення модуля: {e}"
 
+    def get_help_text(self, category=None):
+        help_categories = {
+            "basic": {
+                "title": "🔧 Основні команди",
+                "commands": [
+                    ("`.status`", "Показати статус бота"),
+                    ("`.restart`", "Перезапустити бота"),
+                    ("`.addsudo`", "Додати SUDO користувача (тільки власник)"),
+                    ("`.checkupdate`", "Перевірити оновлення"),
+                    ("`.update`", "Застосувати оновлення якщо доступне")
+                ]
+            },
+            "modules": {
+                "title": "📦 Керування модулями",
+                "commands": [
+                    ("`.modules`", "Показати завантажені модулі"),
+                    ("`.lsmodules`", "Показати всі локальні модулі"),
+                    ("`.repomodules`", "Показати модулі в репозиторії"),
+                    ("`.load <name>`", "Завантажити модуль"),
+                    ("`.unload <name>`", "Вивантажити модуль"),
+                    ("`.reload <name>`", "Перезавантажити модуль")
+                ]
+            },
+            "manage": {
+                "title": "🛠️ Управління модулями",
+                "commands": [
+                    ("`.getmodule <name>`", "Завантажити модуль з репозиторію"),
+                    ("`.updatemodule <name>`", "Оновити модуль"),
+                    ("`.createmodule <name>`", "Створити новий модуль"),
+                    ("`.delmodule <name>`", "Видалити модуль")
+                ]
+            }
+        }
+        
+        if category and category in help_categories:
+            cat = help_categories[category]
+            text = f"**{cat['title']}**\n\n"
+            for cmd, desc in cat['commands']:
+                text += f"`{cmd}` - {desc}\n"
+            return text
+        
+        text = "**🤖 ModuBot Help**\n\n"
+        text += "**Доступні категорії:**\n"
+        text += "`.help basic` - Основні команди\n"
+        text += "`.help modules` - Робота з модулями\n"
+        text += "`.help manage` - Управління модулями\n\n"
+        text += "**Швидкий доступ:** `.help all` - показати всі команди"
+        
+        if category == "all":
+            text = "**🤖 ModuBot - Всі команди**\n\n"
+            for cat_name, cat_data in help_categories.items():
+                text += f"**{cat_data['title']}**\n"
+                for cmd, desc in cat_data['commands']:
+                    text += f"`{cmd}` - {desc}\n"
+                text += "\n"
+        
+        return text
+
     def setup_handlers(self):
         @self.app.on_message(filters.command("help", prefixes=".") & filters.user(self.sudo_users))
         async def help_command(client, message):
-            if len(message.command) > 1 and message.command[1] == "modules":
-                help_text = """
-**🛠️ Керування модулями ModuBot**
-
-**CREATE:**
-`.createmodule <назва>` - Створити новий порожній модуль локально.
-`.getmodule <назва>` - Завантажити модуль з репозиторію.
-
-**READ:**
-`.lsmodules` - Показати всі локальні модулі (завантажені/ні).
-`.repomodules` - Показати всі модулі в онлайн-репозиторії.
-`.modules` - Показати тільки завантажені модулі.
-`.load <назва>` - Завантажити модуль в пам'ять.
-
-**UPDATE:**
-`.updatemodule <назва>` - Оновити модуль до останньої версії.
-`.reload <назва>` - Перезавантажити модуль.
-
-**DELETE:**
-`.unload <назва>` - Вивантажити модуль з пам'яті.
-`.delmodule <назва>` - Повністю видалити модуль.
-"""
-                await message.reply_text(help_text)
-            else:
-                await message.reply_text("Доступна довідка: `.help modules`")
+            category = message.command[1] if len(message.command) > 1 else None
+            help_text = self.get_help_text(category)
+            await message.reply_text(help_text)
 
         @self.app.on_message(filters.command("modules", prefixes=".") & filters.user(self.sudo_users))
         async def list_modules(client, message):
@@ -420,9 +451,18 @@ def register_handlers(app: Client):
         async def check_update_command(client, message):
             status_msg = await message.reply_text("🔍 Checking for updates...")
             if self.check_for_updates():
-                await status_msg.edit_text("🆕 An update is available for the main script. Use `.restart` to apply.")
+                await status_msg.edit_text("🆕 An update is available for the main script. Use `.update` to apply.")
             else:
                 await status_msg.edit_text("✅ No updates found. You're running the latest version.")
+
+        @self.app.on_message(filters.command("update", prefixes=".") & filters.user(self.sudo_users))
+        async def apply_update_command(client, message):
+            status_msg = await message.reply_text("🔍 Checking for updates...")
+            if self.check_for_updates():
+                await status_msg.edit_text("🆕 Update found! Applying and restarting...")
+                self.apply_main_update()
+            else:
+                await status_msg.edit_text("✅ No updates available. You're running the latest version.")
 
         @self.app.on_message(filters.command("createmodule", prefixes=".") & filters.user(self.sudo_users))
         async def create_module_cmd(client, message):
@@ -606,9 +646,6 @@ def register_handlers(app: Client):
         
         self.setup_handlers()
         self.load_all_modules()
-        
-        update_thread = threading.Thread(target=self.auto_check_updates, daemon=True)
-        update_thread.start()
         
         logger.info(f"ModuBot started with {len(self.loaded_modules)} modules loaded")
 
