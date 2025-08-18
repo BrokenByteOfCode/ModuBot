@@ -159,7 +159,9 @@ class ModuBot:
                     handler_tuples = []
                     for handler in module_handlers:
                         group = getattr(handler, "group", 0)
+                        self.app.add_handler(handler, group)
                         handler_tuples.append((handler, group))
+                    
                     self.loaded_modules[module_name] = module
                     self.module_handlers[module_name] = handler_tuples
                     logger.info(f"Loaded module: {full_module_name}")
