@@ -10,7 +10,7 @@ with Client(
     name="my_account",
     api_id=API_ID,
     api_hash=API_HASH,
-    in_memory=True  # Ось правильний спосіб вказати, що сесія має бути в пам'яті
+    in_memory=True
 ) as app:
     session_string = app.export_session_string()
     print("\n✅ Ваша сесія успішно створена!")
